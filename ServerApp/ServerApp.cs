@@ -17,7 +17,7 @@ namespace ServerApp
 			*/
 			TcpListener listener = new TcpListener(IPAddress.Any, 9999);
 			listener.Start(); 
-			var client = listener.AcceptTcpClient();
+			
 			
 			/*
 			---  from the client connect, we get a Stream
@@ -25,6 +25,7 @@ namespace ServerApp
 			---  AutoFlush=true makes it so that every "write" command to the stream (which normally goes to a buffer and not yet added to the stream) is automatically put from the buffer into the stream. Without autoflush it will cause an exception to be thrown (TODO why is an exception thrown? Also, apparently AutoFlush is bad, see link below. What is the alternative to AutoFlush)
 			
 			*/
+			TcpClient client = listener.AcceptTcpClient();
 			NetworkStream networkStream = client.GetStream();
 			StreamWriter writer = new StreamWriter(networkStream);
 			writer.AutoFlush = true; 
@@ -38,6 +39,23 @@ namespace ServerApp
 				---  .Read() reads incoming data (if there is any) into the buffer that is it's first argument, and returns the number of bytes read (so that you can use this later to retrieve the exact amount of data from the buffer that comprised the last Read() command)
 				---  takes the exact amount of data from the buffer that was read into the buffer in step 2, encodes it from bytes into a data type (String here), and saves that data into the "dataReceived" variable
 				*/
+				Console.WriteLine("Enter Command...");
+				string command = Console.ReadLine();
+				Console.WriteLine("Sending command: \n" + command + "\n\n");
+				try {
+					writer.WriteLine(command);
+				} catch (Exception e) {
+					Console.WriteLine("inside exception");
+					writer.Close();
+					networkStream.Close();
+					client.Close();
+					Console.WriteLine(e.ToString());
+					client = listener.AcceptTcpClient();
+					networkStream = client.GetStream();
+					writer = new StreamWriter(networkStream);
+					writer.AutoFlush = true; 
+				}
+
 				byte[] buffer = new byte[client.ReceiveBufferSize];
 				int bytesRead = networkStream.Read(buffer, 0, client.ReceiveBufferSize);
 				string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
@@ -50,23 +68,22 @@ namespace ServerApp
 					--- if bytesRead is a weird value, we break from the loop
 				*/
 				if (bytesRead != 0) {
-					Console.WriteLine("Recieved request: \n" + dataReceived);
-					string response = "it works!";
-					Console.WriteLine("response is: \n" + response);
-					writer.WriteLine(response);
+					Console.WriteLine("Recieved response: \n" + dataReceived + "\n\n");
+					
 				}
 				else {
           /* why are we breaking out of the while loop in situations where there's no bytes read? Shouldn't this be the case most of the time?
           */
 					break;
 				}
-				
+
 			}
 				/*
 				makes it so the Console will not shut down after launch the program?
 				*/
-				Console.ReadKey();
+			
 		}
+
 	}
 
 }
