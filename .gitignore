@@ -4,3 +4,5 @@
 */.vscode/
 tutorial-code/*
 tutorial-code.zip
+launch.json
+tasks.json
